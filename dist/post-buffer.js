@@ -73,12 +73,7 @@ function postBuffer(message, postable) {
         console.error(`Error in post-worker: Invalid message type passed, must be an Object, Array or string, was ${typeof message}`);
         return false;
     }
-    // if (postable) {
     postable.postMessage(buffer, [buffer]);
-    // } else {
-    //     // TODO: Test with worker loader
-    //     this.postMessage(buffer, [buffer]);
-    // }
     return true;
 }
 exports.postBuffer = postBuffer;

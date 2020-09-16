@@ -74,12 +74,7 @@ export function postBuffer(message: Message, postable: Postable): boolean {
         return false;
     }
 
-    // if (postable) {
     postable.postMessage(buffer, [buffer]);
-    // } else {
-    //     // TODO: Test with worker loader
-    //     this.postMessage(buffer, [buffer]);
-    // }
 
     return true;
 }
