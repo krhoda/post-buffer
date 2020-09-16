@@ -57,7 +57,7 @@ export function bufferToJSON(buffer: ArrayBuffer): object | false {
     }
 }
 
-export function postBuffer(message: Message, postable?: Postable): boolean {
+export function postBuffer(message: Message, postable: Postable): boolean {
     let buffer: ArrayBuffer | false;
     if (typeof message === 'object') {
         buffer = jsonToBuffer(message);
@@ -74,12 +74,12 @@ export function postBuffer(message: Message, postable?: Postable): boolean {
         return false;
     }
 
-    if (postable) {
-        postable.postMessage(buffer, [buffer]);
-    } else {
-        // TODO: Test with worker loader
-        this.postMessage(buffer, [buffer]);
-    }
+    // if (postable) {
+    postable.postMessage(buffer, [buffer]);
+    // } else {
+    //     // TODO: Test with worker loader
+    //     this.postMessage(buffer, [buffer]);
+    // }
 
     return true;
 }
