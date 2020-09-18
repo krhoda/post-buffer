@@ -1,6 +1,6 @@
 {
   "name": "post-buffer",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Serialize to array buffer and transfer between execution contexts, from the UI thread to WebWorkers.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
