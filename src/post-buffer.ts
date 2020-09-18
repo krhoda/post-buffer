@@ -3,18 +3,23 @@ interface Postable {
 }
 
 type Message = string | object;
+type PostBufferResult = [success: boolean, err: string];
+type MakeBufferResult = [buf: ArrayBuffer | false, err: string];
+type StringBufferResult = [str: string | false, err: string];
+type JSONBufferResult = [json: object | false, err: string];
 
-export function jsonToBuffer(json: object): ArrayBuffer | false {
+function jsonToBuffer(json: object): MakeBufferResult {
     try {
         let str = JSON.stringify(json);
         return stringToBuffer(str);
     } catch (err) {
-        console.error(`Error in post-worker: Could not process argument into buffer: ${err}`);
-        return false;
+        let nextErr = `Error in post-buffer, could not process argument into buffer: ${err}`;
+        return [false, nextErr];
     }
 }
 
-export function stringToBuffer(str: string): ArrayBuffer | false {
+function stringToBuffer(str: string): MakeBufferResult {
+    let errMsg = '';
     try {
         let buffer = new ArrayBuffer(str.length * 2); 
         let bufferView = new Uint16Array(buffer);
@@ -22,59 +27,68 @@ export function stringToBuffer(str: string): ArrayBuffer | false {
             bufferView[i] = str.charCodeAt(i);
         }
 
-        return buffer;
+        return [buffer, errMsg];
     } catch (err) {
-        console.error(`Error in post-worker: Could not process argument into buffer: ${err}`);
-        return false;
+        errMsg = `Error in post-buffer, could not process argument into buffer: ${err}`;
+        return [false, errMsg];
     }
 }
 
-export function bufferToString(buffer: ArrayBuffer): string | false {
+// bufferToString takes an ArrayBuffer (the result of postBuffer) and decodes it to a plain string
+// It returns an array of 2 values, the first being either the decoded string or false literal
+// In case a false, the second value is an error message.
+export function bufferToString(buffer: ArrayBuffer): StringBufferResult {
     try {
         let result = new Uint16Array(buffer).reduce((data, byte) => {
             return data + String.fromCharCode(byte);
         }, '');
 
-        return result;
+        return [result, ''];
     } catch (err) {
-        console.error(`Error in post-worker: Could not process buffer to string: ${err}`);
-        return false;
+        let errMsg = `Error in post-buffer, could not process buffer to string, original error: ${err}`;
+        return [false, errMsg];
     }
 }
 
-export function bufferToJSON(buffer: ArrayBuffer): object | false {
-    let str = bufferToString(buffer);
+// bufferToJSON takes an ArrayBuffer (the result of postBuffer) and decodes it to a parsed JSON object
+// It returns an array of 2 values, the first being either the parsed JSON or false literal
+// In case a false, the second value is an error message.
+export function bufferToJSON(buffer: ArrayBuffer): JSONBufferResult {
+    let [str, errMsg] = bufferToString(buffer);
     if (str === false) {
-        return str;
+        return [str, errMsg];
     }
 
     try {
         let obj = JSON.parse(str);
-        return obj;
+        return [obj, ''];
     } catch (err) {
-        console.error(`Error in post-worker: Could not process buffer to JSON: ${err}, Target:`);
-        return false;
+        errMsg = `Error in post-buffer, could not process buffer to JSON, orginal error: ${err}`;
+        return [false, errMsg];
     }
 }
 
-export function postBuffer(message: Message, postable: Postable): boolean {
+// postBuffer expects two arguements, the first being a string or something JSON stringifyable
+// the second either being the worker (if the caller is the UI thread) or the scope (if a worker)
+// Returns an array of two values, the first is boolean indicating if the operation is successful
+// If it failed, the second is the error message.
+export function postBuffer(message: Message, postable: Postable): PostBufferResult {
     let buffer: ArrayBuffer | false;
+    let errMsg = '';
     if (typeof message === 'object') {
-        buffer = jsonToBuffer(message);
-        if (buffer === false) {
-            return buffer;
-        }
+        [buffer, errMsg] = jsonToBuffer(message);
     } else if (typeof message === 'string') {
-        buffer = stringToBuffer(message);
-        if (buffer === false) {
-            return buffer;
-        }
+        [buffer, errMsg] = stringToBuffer(message);
     } else {
-        console.error(`Error in post-worker: Invalid message type passed, must be an Object, Array or string, was ${typeof message}`);
-        return false;
+        buffer = false;
+        errMsg = `Error in post-buffer, Invalid message type passed, must be an Object, Array or string, was ${typeof message}`;
+    }
+
+    if (buffer === false) {
+        return [buffer, errMsg];
     }
 
     postable.postMessage(buffer, [buffer]);
 
-    return true;
+    return [true, ''];
 }
