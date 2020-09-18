@@ -42,6 +42,16 @@ function App() {
         console.error("Error in UI unpacking buffer:")
         console.error(errMsg);
       }
+
+      let [success, errMsg2] = pb.postBuffer(
+        {hello: "world"}, 
+        echoWorker
+      );
+
+      if (!success) {
+        console.error("Error in UI posting buffer:")
+        console.error(errMsg2);
+      }
     };
   })
 
